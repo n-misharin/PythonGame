@@ -4,7 +4,7 @@ from pygame.sprite import Group, Sprite
 from pygame.rect import Rect
 from texture_loader import GROUNDS_TEXTURES, WORKERS_TEXTURES
 
-DISPLAY_SIZE = DISPLAY_WIDTH, DISPLAY_HEIGHT = 1152, 864
+DISPLAY_SIZE = DISPLAY_WIDTH, DISPLAY_HEIGHT = 1280, 720
 
 
 def is_point_in_rect(point: [int, int], rect: Rect):
@@ -15,6 +15,18 @@ class LayerSprite(Sprite):
     def __init__(self, layer_num):
         super().__init__()
         self.layer_num = layer_num
+        self.is_selected = False
+
+    def update(self, *args, **kwargs):
+        camera = kwargs['camera']
+        camera.apply(self.rect)
+        key_controller = kwargs['key_controller']
+        if key_controller.is_click_on(self):
+            for sprite in self.groups()[0]:
+                sprite.is_selected = False
+            self.is_selected = True
+            key_controller.mouse_down_button = None
+        super().update(*args, **kwargs)
 
 
 class AnimatedSprite(LayerSprite):
@@ -29,8 +41,10 @@ class AnimatedSprite(LayerSprite):
         self.cur_frame_y = 0
         self.image = self.frames[self.cur_frame_y][self.cur_frame_y]
 
-    def update(self, delta_time=0, camera=None, key_controller=None):
-        self.cur_frame_time += delta_time
+    def update(self, *args, **kwargs):
+        d_time = kwargs['delta_time']
+        super().update(*args, **kwargs)
+        self.cur_frame_time += d_time
         if self.cur_frame_time >= self.FRAME_DURATION:
             self.cur_frame_time = 0
             self.cur_frame_x = (self.cur_frame_x + self.animation_delta) % len(self.frames[self.cur_frame_y])
@@ -51,19 +65,23 @@ class UnitSprite(AnimatedSprite):
         super().__init__(GameLayerController.UNIT_LAYER,
                          WORKERS_TEXTURES[player_num].copy())
         self.rect = Rect(pos, (64, 64))
-        self.is_selected = True
-        self.set_animation(self.ANIMATION_MOVE)
+        self.set_animation(self.ANIMATION_STAY)
 
     def update(self, *args, **kwargs):
         super().update(*args, **kwargs)
+        self.set_animation(self.cur_frame_y)
 
     def set_animation(self, animation_line: int = ANIMATION_STAY):
-        if animation_line == self.ANIMATION_MOVE:
+        if animation_line % 3 == self.ANIMATION_MOVE:
             self.animation_delta = -1
         else:
             self.animation_delta = 1
+        animation_line %= 3
         animation_line += len(self.frames) // 2 if self.is_selected else 0
-        self.set_frame_y(animation_line)
+        if animation_line % 3 == self.cur_frame_y % 3:
+            self.cur_frame_y = animation_line
+        else:
+            self.set_frame_y(animation_line)
 
 
 class FieldSprite(LayerSprite):
@@ -123,16 +141,18 @@ class KeyController:
         self.is_mouse_down = False
         self.mouse_down_button = None
         self.mouse_down_pos = None
+        self.mouse_up_pos = None
         self.mouse_pos = None
+        self.pre_mouse_pos = None
 
         self.is_key_pressed = False
         self.last_pressed_key = None
 
-        self.is_drag = False
         self.is_quit = False
 
     def update(self, *args, **kwargs):
         self.is_key_pressed = False
+        self.pre_mouse_pos = self.mouse_pos
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -145,20 +165,31 @@ class KeyController:
             if event.type == pygame.MOUSEBUTTONDOWN:
                 self.is_mouse_down = True
                 self.mouse_down_pos = event.pos
+                self.mouse_down_button = event.button
 
             if event.type == pygame.MOUSEBUTTONUP:
                 self.is_mouse_down = False
-                self.mouse_down_button = event.button
+                # self.mouse_down_button = None
+                self.mouse_up_pos = event.pos
 
             if event.type == pygame.MOUSEMOTION:
                 self.mouse_pos = event.pos
 
     def is_click_on(self, sprite: LayerSprite):
-        return self.is_mouse_down and self.mouse_down_button == pygame.BUTTON_LEFT and \
-               is_point_in_rect(self.mouse_pos, sprite.rect)
+        return self.mouse_down_button == pygame.BUTTON_LEFT and \
+               not self.is_mouse_down and \
+               is_point_in_rect(self.mouse_down_pos, sprite.rect) and \
+               is_point_in_rect(self.mouse_up_pos, sprite.rect)
 
     def is_drag(self):
         return self.is_mouse_down and self.mouse_down_button == pygame.BUTTON_RIGHT
+
+    def get_delta(self):
+        if self.is_mouse_down and self.is_drag():
+            return self.mouse_pos[0] - self.pre_mouse_pos[0], \
+                   self.mouse_pos[1] - self.pre_mouse_pos[1]
+        else:
+            return 0, 0
 
     def __str__(self):
         return [(k.__str__(), v.__str__()) for k, v in self.__dict__.items()]
@@ -178,10 +209,25 @@ class Scene:
         self.layer_controller.update(*args, **kwargs)
 
 
+class Camera:
+    def __init__(self, pos: [int, int] = (0, 0)):
+        self.pos = pos
+        self.delta = (0, 0)
+
+    def apply(self, rect: Rect):
+        rect.x += self.delta[0]
+        rect.y += self.delta[1]
+
+    def update(self, delta: [int, int]):
+        self.delta = delta
+
+
 class GameScene(Scene):
     def __init__(self, layer_controller: GameLayerController, game: Game):
         super().__init__(layer_controller)
-        board = game.get_board()
+        self.game = game
+        board = self.game.get_board()
+        self.camera = Camera(pos=(0, 0))
         for y in range(board.size[1]):
             for x in range(board.size[0]):
                 field = board.get_field((x, y))
@@ -197,6 +243,22 @@ class GameScene(Scene):
                     self.add(unit_sprite)
                     k += 1
 
+    def update(self, *args, **kwargs):
+        key_controller = kwargs['key_controller']
+        if key_controller is not None:
+            self.camera.update(delta=key_controller.get_delta())
+        kwargs['camera'] = self.camera
+        super().update(*args, **kwargs)
+        self.game.move_unit()
+
+
+class PlayerGameController:
+    def __init__(self, game: Game):
+        self.game = game
+
+    def update(self):
+        pass
+
 
 class Display:
     def __init__(self, display_size=DISPLAY_SIZE, scenes=None):
@@ -208,11 +270,16 @@ class Display:
         self.key_controller = KeyController()
 
     def draw(self):
+        self.screen.fill(color=pygame.color.Color(0, 0, 0),
+                         rect=Rect((0, 0), self.display_size))
         self.scenes[self.cur_scene_num].draw(self.screen)
 
     def update(self, *args, **kwargs):
         self.key_controller.update(*args, **kwargs)
-        self.scenes[self.cur_scene_num].update(*args, **kwargs)
+        self.scenes[self.cur_scene_num].update(
+            *args,
+            key_controller=self.key_controller,
+            **kwargs)
 
     def flip(self):
         pygame.display.flip()

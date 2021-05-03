@@ -240,6 +240,11 @@ class Game(object):
     def get_player_num(self, player: Player):
         return self._players.index(player)
 
+    def get_units(self, player: Player = None):
+        if player is None:
+            return self._units
+        return list(filter(lambda u: u.player == player, self._units))
+
 
 class ConsoleGameController:
     def __init__(self, game):
