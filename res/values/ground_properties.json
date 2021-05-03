@@ -1,0 +1,60 @@
+{
+  "grounds": [
+    {
+      "name": "tunnel",
+      "type": 0,
+      "title": "Туннель",
+      "max_health": 1,
+      "next_ground": 0,
+      "resource": null
+    },
+    {
+      "name": "soil",
+      "type": 1,
+      "title": "Земля",
+      "max_health": 1,
+      "next_ground": 0,
+      "resource": null
+    },
+    {
+      "name": "oil",
+      "type": 2,
+      "title": "Топливо",
+      "max_health": 10,
+      "next_ground": 0,
+      "resource": "oil"
+    },
+    {
+      "name": "diamond",
+      "type": 3,
+      "title": "Бриллианты",
+      "max_health": 10,
+      "next_ground": 0,
+      "resource": "diamond"
+    },
+    {
+      "name": "gold",
+      "type": 4,
+      "title": "Золото",
+      "max_health": 10,
+      "next_ground": 0,
+      "resource": "gold"
+    },
+    {
+      "name": "lava",
+      "type": 5,
+      "title": "Лава",
+      "max_health": 1,
+      "next_ground": 1,
+      "resource": null
+    },
+    {
+      "name": "stone",
+      "type": 6,
+      "title": "Камень",
+      "max_health": 3,
+      "next_ground": 0,
+      "resource": null
+    }
+  ]
+}

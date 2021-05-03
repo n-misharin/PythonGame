@@ -1,0 +1,11 @@
+{
+  "worker": {
+    "files": ["red_worker.png", "blue_worker.png", "green_worker.png", "white_worker.png", "worker_backlighting.png"],
+    "frame_size": [64, 64],
+    "animation_rows": {
+      "work": [0, 7],
+      "stay": [14  ,15],
+      "move": [8, 13]
+    }
+  }
+}

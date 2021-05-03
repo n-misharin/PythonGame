@@ -1,0 +1,18 @@
+{
+  "ground": {
+    "files": ["ground_sprites.png"],
+    "frame_size": [94, 94],
+    "animation_rows": {
+      "blue_stone": [0, 0],
+      "empty": [1, 1],
+      "orange_stone": [2, 2],
+      "red_lava": [3, 3],
+      "green_lava": [4, 4],
+      "soil": [5, 5],
+      "stone": [6, 6],
+      "hall": [7, 7],
+      "water": [8, 8],
+      "gold": [9, 9]
+    }
+  }
+}
