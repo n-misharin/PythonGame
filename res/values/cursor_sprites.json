@@ -1,0 +1,11 @@
+{
+  "cursor": {
+    "files": ["cursor.png"],
+    "frame_size": [25, 25],
+    "animation_rows": {
+      "default": [0, 0],
+      "move": [1 , 4],
+      "no_move": [5, 5]
+    }
+  }
+}

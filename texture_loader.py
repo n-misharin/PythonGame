@@ -89,10 +89,13 @@ class TextureWorkerLoader(TextureLoader):
             normal_frames = ImageHandler.cut_sheet(image, worker_dict['frame_size'])
             joined_frames = ImageHandler.cut_sheet(joined_image, worker_dict['frame_size'])
 
-            workers_images.append(
-                ImageHandler.get_frames_sheet(normal_frames, worker_dict['animation_rows']) +
-                ImageHandler.get_frames_sheet(joined_frames, worker_dict['animation_rows']))
+            fs = ImageHandler.get_frames_sheet(normal_frames, worker_dict['animation_rows'])
+            fs.append([pygame.transform.flip(fr, True, False) for fr in fs[2][:]])
 
+            fs2 = ImageHandler.get_frames_sheet(joined_frames, worker_dict['animation_rows'])
+            fs2.append([pygame.transform.flip(fr, True, False) for fr in fs2[2][:]])
+
+            workers_images.append(fs + fs2)
         return workers_images
 
 
@@ -118,11 +121,25 @@ class TextureGroundLoader(TextureLoader):
         ]
 
 
+class TextureCursorLoader(TextureLoader):
+    def __init__(self, json_file='cursor_sprites.json'):
+        super().__init__(json_file)
+
+    def load(self):
+        cursor_dict = self.json['cursor']
+
+        image = ImageHandler.load_image(cursor_dict['files'][0])
+        frames = ImageHandler.cut_sheet(image, cursor_dict['frame_size'])
+
+        return ImageHandler.get_frames_sheet(frames, cursor_dict['animation_rows'])
+
+
 pygame.init()
 screen = pygame.display.set_mode((1000, 800))
 
 WORKERS_TEXTURES = TextureWorkerLoader().load()
 GROUNDS_TEXTURES = TextureGroundLoader().load()
+CURSOR_TEXTURES = TextureCursorLoader().load()
 
 if __name__ == '__main__':
     running = True

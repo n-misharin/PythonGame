@@ -30,6 +30,7 @@ class ResourcesTypes:
     OIL = 2
 
     NAMES = ["diamond", "gold", "oil"]
+    VISIBLE_NAMES = ['Кристаллы', 'Золото', 'Топливо']
 
     @staticmethod
     def get_type(res_name):
@@ -82,6 +83,7 @@ class Field(object):
         self.cur_health = 0
         self.units = units[:] if units is not None and len(units) != 0 else list()
         self.init(field_type)
+        self.title = FIELD_PROPERTIES[field_type]['title']
 
     def init(self, field_type):
         self.type = field_type
@@ -176,13 +178,20 @@ class Game(object):
         w = self._board.size[0] - 1
         h = self._board.size[1] - 1
         return ((0, h // 2), (0, h // 2 + 1)), \
-               ((w // 2, 0), (w // 2 + 1, 0)),\
-               ((w, h // 2), (w, h // 2 + 1)),\
+               ((w, h // 2 + 1), (w, h // 2)), \
+               ((w // 2 + 1, 0), (w // 2, 0)), \
                ((w // 2, h), (w // 2 + 1, h))
 
     def next_turn(self):
         self.turn_number += 1
         self._board.update(self.get_cur_player())
+
+    def is_game_over(self):
+        for y in range(self._board.size[1]):
+            for x in range(self._board.size[0]):
+                if self._board.get_field((x, y)).type == FieldTypes.DIAMOND:
+                    return False
+        return True
 
     def get_cur_player(self):
         return self._players[self.turn_number % len(self._players)]
@@ -206,11 +215,23 @@ class Game(object):
         return False
 
     def buy_unit(self):
-        if self.get_cur_player().resources[ResourcesTypes.GOLD] >= self.UNIT_COST:
+        base_pos = self.get_bases_coord()[self._players.index(self.get_cur_player())][0]
+        if self.get_cur_player().resources[ResourcesTypes.GOLD] >= self.UNIT_COST and \
+                len(self.get_field_by_coord(base_pos).units) < self.MAX_UNITS_ON_FIELD:
             self.get_cur_player().resources[ResourcesTypes.GOLD] -= self.UNIT_COST
-            self.add_unit(self.get_bases_coord()[self._players.index(self.get_cur_player())])
+            self.add_unit(base_pos)
             return True
         return False
+
+    def is_unit_can_move(self, unit_id, new_pos):
+        if self.MAX_UNITS_ON_FIELD <= len(self.get_field_by_coord(new_pos).units):
+            return False
+        unit = self.get_unit_by_id(unit_id)
+        field_type = self.get_field_by_coord(unit.pos).type
+        if field_type == FieldTypes.TUNNEL:
+            return True
+        new_pos_field_type = self.get_field_by_coord(new_pos).type
+        return field_type != FieldTypes.TUNNEL and new_pos_field_type == FieldTypes.TUNNEL
 
     def move_unit(self, unit_id: int, new_pos: [int, int]) -> bool:
         unit = self.get_unit_by_id(unit_id)
@@ -218,7 +239,7 @@ class Game(object):
             old_field = self.get_field_by_coord(unit.pos)
             new_field = self.get_field_by_coord(new_pos)
             if old_field is not None and new_field is not None:
-                if unit.is_can_move(new_pos):
+                if unit.is_can_move(new_pos) and self.is_unit_can_move(unit_id, new_pos):
                     unit.move(new_pos)
                     new_field.add_unit(old_field.pop_unit(unit))
                     return True

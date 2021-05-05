@@ -20,8 +20,8 @@
       "name": "oil",
       "type": 2,
       "title": "Топливо",
-      "max_health": 10,
-      "next_ground": 0,
+      "max_health": 1,
+      "next_ground": 5,
       "resource": "oil"
     },
     {
@@ -43,7 +43,7 @@
     {
       "name": "lava",
       "type": 5,
-      "title": "Лава",
+      "title": "Вода",
       "max_health": 1,
       "next_ground": 1,
       "resource": null
