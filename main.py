@@ -1,4 +1,3 @@
-
 import pygame
 from game import Game, Unit, Field, Board, ResourcesTypes, get_dist
 from pygame.sprite import Group, Sprite
@@ -116,7 +115,7 @@ class FieldSprite(LayerSprite):
     def init(self):
         self.image = GROUNDS_TEXTURES[self.field.type].copy()
         text = str(self.field.cur_health)
-        font_sur = pygame.font.SysFont('Arial', 14, False).\
+        font_sur = pygame.font.SysFont('Arial', 14, False). \
             render(text, True, pygame.color.Color('gray'))
         self.image.blit(font_sur, (0, 0))
 
@@ -356,11 +355,11 @@ class Panel(LayerSprite):
         resources = list(map(str, resources))
         Label(size=(220, self.HEIGHT - 4 * self.MARGIN),
               text=ResourcesTypes.VISIBLE_NAMES[0] + ': ' + resources[0],
-              color=pygame.color.Color('Cyan')).\
+              color=pygame.color.Color('Cyan')). \
             draw(self.image, (190, self.MARGIN * 2))
         Label(size=(180, self.HEIGHT - 4 * self.MARGIN),
               text=ResourcesTypes.VISIBLE_NAMES[1] + ': ' + resources[1],
-              color=pygame.color.Color('yellow')).\
+              color=pygame.color.Color('yellow')). \
             draw(self.image, (420, self.MARGIN * 2))
         # oil PANEl
         # Label(size=(150, self.HEIGHT - 4 * self.MARGIN),
@@ -665,15 +664,18 @@ class GameOver(Scene):
         self.camera = Camera()
         self.sprite.rect = Rect(self.START_POS, DISPLAY_SIZE)
 
-        for i in range(len(game._players)):
+        winners = sorted([(game._players[i].resources[0], game._players[i].name, i) for i in range(len(game._players))],
+                         reverse=True)
+
+        for i in range(len(winners)):
             lbl = Label(
                 size=self.LABEL_SIZE,
                 text=' '.join([
                     str(i + 1) + ' место:',
-                    game._players[i].name + ',',
-                    str(game._players[i].resources[0]) + ' очков'
+                    str(winners[i][1]) + ',',
+                    str(winners[i][0]) + ' очков'
                 ]),
-                color=Panel.PLAYERS_COLORS[i])
+                color=Panel.PLAYERS_COLORS[winners[i][2]])
             lbl.draw(self.sprite.image, (DISPLAY_SIZE[0] // 2 - self.LABEL_SIZE[0] // 2, i * self.MARGIN))
 
         self.layer_controller.add_layer()
